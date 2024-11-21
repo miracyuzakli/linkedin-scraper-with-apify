@@ -28,41 +28,44 @@ def clean_json_data_for_posts(data):
     return transformed_data
 
 def clean_json_data_for_company(data):
-    organization_data = {}
-    for entry in data:
-        city = entry.get("headquarter", {}).get("city", "")
-        line1 = entry.get("headquarter", {}).get("line1", "")
-        line2 = entry.get("headquarter", {}).get("line2", "")
-        city = f'{city} {line1 if line1 else ""} {line2 if line2 else ""}'.strip()
-        industries = ", ".join(
-            [industry.get("name", "") for industry in entry.get("industries", [])]
-        )
-        organization = {
-            "name": entry.get("name"),
-            "description": entry.get("description"),
-            "tagline": entry.get("tagline"),
-            "websiteUrl": entry.get("websiteUrl"),
-            "followerCount": entry.get("followerCount"),
-            "country": entry.get("headquarter", {}).get("country"),
-            "geographicArea": entry.get("headquarter", {}).get("geographicArea"),
-            "city": city,
-            "postalCode": entry.get("headquarter", {}).get("postalCode"),
-            "industries": industries,
-        }
-        organization_data.update(organization)
-    return organization_data
-
+    if not data:
+        return {}
+    entry = data[0]  # Assuming one company per URL
+    city = entry.get("headquarter", {}).get("city", "")
+    line1 = entry.get("headquarter", {}).get("line1", "")
+    line2 = entry.get("headquarter", {}).get("line2", "")
+    city_full = f'{city} {line1 if line1 else ""} {line2 if line2 else ""}'.strip()
+    industries = ", ".join(
+        [industry.get("name", "") for industry in entry.get("industries", [])]
+    )
+    company_data = {
+        "name": entry.get("name"),
+        "occupation": entry.get("tagline", ""),  # Aligning with profile's 'occupation'
+        "headline": entry.get("description", ""),  # Aligning with profile's 'headline'
+        "summary": entry.get("description", ""),  # If needed
+        "skills": industries,  # Industries can be considered as 'skills'
+        "followerCount": entry.get("followerCount"),
+        "connectionsCount": None,  # Companies don't have connections
+        "profilePicture": entry.get("image", ""),  # Assuming 'image' field exists
+        "linkedinUrl": entry.get("url"),
+        "currentPosition": None,  # Not applicable for companies
+        "certifications": None,  # Not applicable
+        "languages": None,  # Not applicable
+        "geoLocation": city_full,
+        "geoCountry": entry.get("headquarter", {}).get("country"),
+        "websiteUrl": entry.get("websiteUrl"),
+    }
+    return company_data
 
 def clean_json_data_for_profile(data):
     if not data:
         return {}
-    profile = data[0]
-    # Process the profile data as before
+    profile = data[0]  # Assuming one profile per URL
     positions = profile.get("positions", [])
     current_position = (
         f'{positions[0]["title"]} at {positions[0]["companyName"]}'
         if positions
-        else "N/A"
+        else ""
     )
     certifications = ", ".join(
         [cert.get("name", "") for cert in profile.get("certifications", [])]
@@ -73,13 +76,13 @@ def clean_json_data_for_profile(data):
             for lang in profile.get("languages", [])
         ]
     )
-    profile_entry = {
+    profile_data = {
         "name": f'{profile.get("firstName", "")} {profile.get("lastName", "")}'.strip(),
         "occupation": profile.get("occupation", ""),
         "headline": profile.get("headline", ""),
         "summary": profile.get("summary", ""),
         "skills": ", ".join(profile.get("skills", [])),
-        "followersCount": profile.get("followersCount", 0),
+        "followerCount": profile.get("followersCount", 0),
         "connectionsCount": profile.get("connectionsCount", 0),
         "profilePicture": profile.get("pictureUrl", ""),
         "linkedinUrl": f'https://www.linkedin.com/in/{profile.get("publicIdentifier", "")}',
@@ -88,8 +91,10 @@ def clean_json_data_for_profile(data):
         "languages": languages,
         "geoLocation": profile.get("geoLocationName", ""),
         "geoCountry": profile.get("geoCountryName", ""),
+        "websiteUrl": None,  # Not directly available in profile data
     }
-    return profile_entry
+    return profile_data
+
 
 
 def get_post_data(url, cookie):
