@@ -18,67 +18,77 @@ def get_profile_or_company(url):
     return 'company' if urlx == 'company' else 'profile'
 
 def clean_json_data_for_posts(data):
-    transformed_data = {}
-    for i, post in enumerate(data, start=1):
-        transformed_data[f"POST{i}URL"] = post.get("url", "")
-        transformed_data[f"POST{i}TEXT"] = post.get("text", "")
-        transformed_data[f"POST{i}LIKE"] = post.get("numLikes", 0)
-        transformed_data[f"POST{i}COMMENT"] = post.get("numComments", 0)
-        transformed_data[f"POST{i}SHARE"] = post.get("numShares", 0)
-    return transformed_data
-
-def clean_json_data_for_company(data):
-    if not data:
+    try:
+        transformed_data = {}
+        for i, post in enumerate(data, start=1):
+            transformed_data[f"POST{i}URL"] = post.get("url", "")
+            transformed_data[f"POST{i}TEXT"] = post.get("text", "")
+            transformed_data[f"POST{i}LIKE"] = post.get("numLikes", 0)
+            transformed_data[f"POST{i}COMMENT"] = post.get("numComments", 0)
+            transformed_data[f"POST{i}SHARE"] = post.get("numShares", 0)
+        return transformed_data
+    except:
         return {}
-    entry = data[0]
-    city = entry.get("headquarter", {}).get("city", "")
-    line1 = entry.get("headquarter", {}).get("line1", "")
-    line2 = entry.get("headquarter", {}).get("line2", "")
-    city_full = f'{city} {line1 if line1 else ""} {line2 if line2 else ""}'.strip()
-    industries = ", ".join([industry.get("name", "") for industry in entry.get("industries", [])])
-    return {
-        "name": entry.get("name"),
-        "occupation": entry.get("tagline", ""),
-        "headline": entry.get("description", ""),
-        "summary": entry.get("description", ""),
-        "skills": industries,
-        "followerCount": entry.get("followerCount"),
-        "connectionsCount": None,
-        "profilePicture": entry.get("image", ""),
-        "linkedinUrl": entry.get("url"),
-        "currentPosition": None,
-        "certifications": None,
-        "languages": None,
-        "geoLocation": city_full,
-        "geoCountry": entry.get("headquarter", {}).get("country"),
-        "websiteUrl": entry.get("websiteUrl"),
-    }
+    
+def clean_json_data_for_company(data):
+    try:
+        if not data:
+            return {}
+        entry = data[0]
+        city = entry.get("headquarter", {}).get("city", "")
+        line1 = entry.get("headquarter", {}).get("line1", "")
+        line2 = entry.get("headquarter", {}).get("line2", "")
+        city_full = f'{city} {line1 if line1 else ""} {line2 if line2 else ""}'.strip()
+        industries = ", ".join([industry.get("name", "") for industry in entry.get("industries", [])])
+        return {
+            "name": entry.get("name"),
+            "occupation": entry.get("tagline", ""),
+            "headline": entry.get("description", ""),
+            "summary": entry.get("description", ""),
+            "skills": industries,
+            "followerCount": entry.get("followerCount"),
+            "connectionsCount": None,
+            "profilePicture": entry.get("image", ""),
+            "linkedinUrl": entry.get("url"),
+            "currentPosition": None,
+            "certifications": None,
+            "languages": None,
+            "geoLocation": city_full,
+            "geoCountry": entry.get("headquarter", {}).get("country"),
+            "websiteUrl": entry.get("websiteUrl"),
+        }
+    except:
+        return {}
 
 def clean_json_data_for_profile(data):
-    if not data:
+
+    try:
+        if not data:
+            return {}
+        profile = data[0]
+        positions = profile.get("positions", [])
+        current_position = f'{positions[0]["title"]} at {positions[0]["companyName"]}' if positions else ""
+        certifications = ", ".join([cert.get("name", "") for cert in profile.get("certifications", [])])
+        languages = ", ".join([f'{lang.get("name", "")} ({lang.get("proficiency", "")})' for lang in profile.get("languages", [])])
+        return {
+            "name": f'{profile.get("firstName", "")} {profile.get("lastName", "")}'.strip(),
+            "occupation": profile.get("occupation", ""),
+            "headline": profile.get("headline", ""),
+            "summary": profile.get("summary", ""),
+            "skills": ", ".join(profile.get("skills", [])),
+            "followerCount": profile.get("followersCount", 0),
+            "connectionsCount": profile.get("connectionsCount", 0),
+            "profilePicture": profile.get("pictureUrl", ""),
+            "linkedinUrl": f'https://www.linkedin.com/in/{profile.get("publicIdentifier", "")}',
+            "currentPosition": current_position,
+            "certifications": certifications,
+            "languages": languages,
+            "geoLocation": profile.get("geoLocationName", ""),
+            "geoCountry": profile.get("geoCountryName", ""),
+            "websiteUrl": None,
+        }
+    except:
         return {}
-    profile = data[0]
-    positions = profile.get("positions", [])
-    current_position = f'{positions[0]["title"]} at {positions[0]["companyName"]}' if positions else ""
-    certifications = ", ".join([cert.get("name", "") for cert in profile.get("certifications", [])])
-    languages = ", ".join([f'{lang.get("name", "")} ({lang.get("proficiency", "")})' for lang in profile.get("languages", [])])
-    return {
-        "name": f'{profile.get("firstName", "")} {profile.get("lastName", "")}'.strip(),
-        "occupation": profile.get("occupation", ""),
-        "headline": profile.get("headline", ""),
-        "summary": profile.get("summary", ""),
-        "skills": ", ".join(profile.get("skills", [])),
-        "followerCount": profile.get("followersCount", 0),
-        "connectionsCount": profile.get("connectionsCount", 0),
-        "profilePicture": profile.get("pictureUrl", ""),
-        "linkedinUrl": f'https://www.linkedin.com/in/{profile.get("publicIdentifier", "")}',
-        "currentPosition": current_position,
-        "certifications": certifications,
-        "languages": languages,
-        "geoLocation": profile.get("geoLocationName", ""),
-        "geoCountry": profile.get("geoCountryName", ""),
-        "websiteUrl": None,
-    }
 
 def get_post_data(url, cookie):
     client = ApifyClient(os.getenv("APIFY_TOKEN"))
@@ -125,22 +135,25 @@ async def async_run_function(func, *args):
         return await loop.run_in_executor(executor, func, *args)
 
 async def process_url_async(url, cookie):
-    url_type = get_profile_or_company(url)
     temp_data = {'URL': url}
-    if url_type == 'company':
-        company_task = async_run_function(get_company_data, url, cookie)
-        post_task = async_run_function(get_post_data, url, cookie)
-        company_data, post_data = await asyncio.gather(company_task, post_task)
-        temp_data.update(clean_json_data_for_company(company_data))
-        temp_data.update(clean_json_data_for_posts(post_data))
-    else:
-        profile_task = async_run_function(get_profile_data, url, cookie)
-        post_task = async_run_function(get_post_data, url, cookie)
-        profile_data, post_data = await asyncio.gather(profile_task, post_task)
-        temp_data.update(clean_json_data_for_profile(profile_data))
-        temp_data.update(clean_json_data_for_posts(post_data))
-    return temp_data
-
+    try:
+        url_type = get_profile_or_company(url)
+        if url_type == 'company':
+            company_task = async_run_function(get_company_data, url, cookie)
+            post_task = async_run_function(get_post_data, url, cookie)
+            company_data, post_data = await asyncio.gather(company_task, post_task)
+            temp_data.update(clean_json_data_for_company(company_data))
+            temp_data.update(clean_json_data_for_posts(post_data))
+        else:
+            profile_task = async_run_function(get_profile_data, url, cookie)
+            post_task = async_run_function(get_post_data, url, cookie)
+            profile_data, post_data = await asyncio.gather(profile_task, post_task)
+            temp_data.update(clean_json_data_for_profile(profile_data))
+            temp_data.update(clean_json_data_for_posts(post_data))
+        return temp_data
+    except:
+        return temp_data
+    
 async def process_urls_in_batches(urls, cookie, batch_size=10):
     data_list = []
     total_batches = (len(urls) + batch_size - 1) // batch_size
